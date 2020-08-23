@@ -42,12 +42,14 @@ static const int SDL_WAKEUPEVENT = SDL_USEREVENT+1;
 #define PEPIN			((0x10010400 - GPIO_BASE) >> 2)
 #define PFPIN			((0x10010500 - GPIO_BASE) >> 2)
 
-#define BTN_X			SDLK_SPACE
-#define BTN_A			SDLK_LCTRL
-#define BTN_B			SDLK_LALT
-#define BTN_Y			SDLK_LSHIFT
-#define BTN_L			SDLK_TAB
-#define BTN_R			SDLK_BACKSPACE
+#define BTN_NORTH		SDLK_SPACE
+#define BTN_EAST		SDLK_LCTRL
+#define BTN_SOUTH		SDLK_LALT
+#define BTN_WEST		SDLK_LSHIFT
+#define BTN_L1			SDLK_TAB
+#define BTN_R1			SDLK_BACKSPACE
+#define BTN_L2			SDLK_RALT   // definition from miyoo_kbd.c
+#define BTN_R2			SDLK_RSHIFT // definition from miyoo_kbd.c
 #define BTN_START		SDLK_RETURN
 #define BTN_SELECT		SDLK_ESCAPE
 #define BTN_BACKLIGHT	SDLK_3
@@ -56,10 +58,48 @@ static const int SDL_WAKEUPEVENT = SDL_USEREVENT+1;
 #define BTN_DOWN		SDLK_DOWN
 #define BTN_LEFT		SDLK_LEFT
 #define BTN_RIGHT		SDLK_RIGHT
+#define BTN_RESET		SDLK_RCTRL
 #define GPIO_TV			SDLK_WORLD_0
 #define GPIO_MMC		SDLK_WORLD_1
 #define GPIO_USB		SDLK_WORLD_2
 #define GPIO_PHONES		SDLK_WORLD_3
+
+#define IMAGE_PATH		"backdrop.png"
+#define IMAGE_X			0
+#define IMAGE_Y			5
+#define TEXT_X			104
+#define TEXT_Y			145
+#define LINE_SPACING	10
+#define TITLE_STRING	"IO Tester - Generic"
+#define TITLE_X			160
+#define TITLE_Y			4
+#define EXIT_X			4
+#define EXIT_Y			230
+#define EXIT_STRING		"SEL+STR: Exit"
+
+//Rectangle dimensions for highlighting components
+//      NAME                  X,   Y,   W,   H
+#define RECT_BTN_NORTH		245,  40,  25,  25
+#define RECT_BTN_EAST		270,  65,  25,  25
+#define RECT_BTN_SOUTH		245,  90,  25,  25
+#define RECT_BTN_WEST		220,  65,  25,  25
+#define RECT_BTN_L1			  5,   0,  45,  25
+#define RECT_BTN_L2			 60,   0,  30,  25
+#define RECT_BTN_R1			270,   0,  45,  25
+#define RECT_BTN_R2			230,   0,  30,  25
+#define RECT_BTN_START		195,  54,  20,  20
+#define RECT_BTN_SELECT		105,  54,  20,  20
+#define RECT_BTN_BACKLIGHT	  0,   0,   0,   0
+#define RECT_BTN_POWER		  0,   0,   0,   0
+#define RECT_BTN_UP			 45,  45,  25,  20
+#define RECT_BTN_DOWN		 45,  90,  25,  20
+#define RECT_BTN_LEFT		 25,  65,  20,  25
+#define RECT_BTN_RIGHT		 70,  65,  20,  25
+#define RECT_BTN_RESET		145,  49,  30,  25
+#define RECT_GPIO_TV		  0,   0,   0,   0
+#define RECT_GPIO_MMC		  0,   0,   0,   0
+#define RECT_GPIO_USB		  0,   0,   0,   0
+#define RECT_GPIO_PHONES	  0,   0,   0,   0
 
 const int	HAlignLeft		= 1,
 			HAlignRight		= 2,
@@ -67,6 +107,8 @@ const int	HAlignLeft		= 1,
 			VAlignTop		= 8,
 			VAlignBottom	= 16,
 			VAlignMiddle	= 32;
+
+
 
 SDL_RWops *rw;
 TTF_Font *font = NULL;
@@ -125,15 +167,15 @@ void draw_background(const char buf[64]) {
 	DBG("");
 	bgrect.w = img->w;
 	bgrect.h = img->h;
-	bgrect.x = (WIDTH - bgrect.w) / 2;
-	bgrect.y = (HEIGHT - bgrect.h) / 2;
+	bgrect.x = IMAGE_X;
+	bgrect.y = IMAGE_Y;
 	SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 0, 0, 0));
 	SDL_BlitSurface(img, NULL, screen, &bgrect);
 
-	// title
-	draw_text(310, 4, "RetroFW", titleColor, VAlignBottom | HAlignRight);
-	draw_text(10, 4, buf, titleColor, VAlignBottom);
-	draw_text(10, 230, "SELECT+START: Exit", txtColor, VAlignMiddle | HAlignLeft);
+	/* // title */
+	draw_text(TITLE_X, TITLE_Y, TITLE_STRING, titleColor, VAlignBottom | HAlignCenter);
+	/* draw_text(10, 4, buf, titleColor, VAlignBottom); */
+	draw_text(EXIT_X, EXIT_Y, EXIT_STRING, txtColor, VAlignMiddle | HAlignLeft);
 }
 
 void draw_point(uint32_t x, uint32_t y, uint32_t w, uint32_t h) {
@@ -220,8 +262,8 @@ int main(int argc, char* argv[]) {
 	char title[64] = "";
 	keys = SDL_GetKeyState(NULL);
 
-	sprintf(title, "IO TESTER");
-	printf("%s\n", title);
+	/* sprintf(title, "IO TESTEN"); */
+	/* printf("%s\n", title); */
 
 	setenv("SDL_NOMOUSE", "1", 1);
 
@@ -245,7 +287,7 @@ int main(int argc, char* argv[]) {
 	TTF_SetFontHinting(font, TTF_HINTING_NORMAL);
 	TTF_SetFontOutline(font, 0);
 
-	SDL_Surface* _img = IMG_Load("backdrop.png");
+	SDL_Surface* _img = IMG_Load(IMAGE_PATH);
 	img = SDL_DisplayFormat(_img);
 	SDL_FreeSurface(_img);
 
@@ -266,68 +308,63 @@ int main(int argc, char* argv[]) {
 	do {
 		draw_background(title);
 
-		int nextline = 20;	
+		int nextline = 0;	
 
 		if (event.key.keysym.sym) {
 			sprintf(buf, "Last key: %s", SDL_GetKeyName(event.key.keysym.sym));
-			draw_text(bgrect.x + 104, bgrect.y + nextline, buf, subTitleColor, VAlignBottom);
-			nextline += 16;
+			draw_text(TEXT_X, TEXT_Y + nextline, buf, subTitleColor, VAlignBottom);
+			nextline += LINE_SPACING;
 
 			sprintf(buf, "Keysym.sym: %d", event.key.keysym.sym);
-			draw_text(bgrect.x + 104, bgrect.y + nextline, buf, subTitleColor, VAlignBottom);
-			nextline += 16;
+			draw_text(TEXT_X, TEXT_Y + nextline, buf, subTitleColor, VAlignBottom);
+			nextline += LINE_SPACING;
 
 			sprintf(buf, "Keysym.scancode: %d", event.key.keysym.scancode);
-			draw_text(bgrect.x + 104, bgrect.y + nextline, buf, subTitleColor, VAlignBottom);
-			nextline += 16;
+			draw_text(TEXT_X, TEXT_Y + nextline, buf, subTitleColor, VAlignBottom);
+			nextline += LINE_SPACING;
 		}
 
 		if (udcStatus) {
-			draw_point(84, 0, 20, 10);
-		
-			SDL_Rect rect;
-			rect.w = 10;
-			rect.h = 10;
-			rect.x = 310 + bgrect.x;
-			rect.y = 40 + bgrect.y;
-			SDL_FillRect(screen, &rect, SDL_MapRGB(screen->format, 150, 0, 0));
-
-			draw_text(bgrect.x + 104, bgrect.y + nextline, "USB Connected", subTitleColor, VAlignBottom);
-			nextline += 16;
+			draw_point(RECT_GPIO_USB);
+			draw_text(TEXT_X, TEXT_Y + nextline, "USB Connected", subTitleColor, VAlignBottom);
+			nextline += LINE_SPACING;
 		}
 		if (tvOutStatus) {
-			draw_point(206, 0, 10, 10);
-			draw_text(bgrect.x + 104, bgrect.y + nextline, "TV-Out Connected", subTitleColor, VAlignBottom);
-			nextline += 16;
+			draw_point(RECT_GPIO_TV);
+			draw_text(TEXT_X, TEXT_Y + nextline, "TV-Out Connected", subTitleColor, VAlignBottom);
+			nextline += LINE_SPACING;
 		}
 		if (mmcStatus) {
-			draw_point(125, 150, 30, 10);
-			draw_text(bgrect.x + 104, bgrect.y + nextline, "SD Card Connected", subTitleColor, VAlignBottom);
-			nextline += 16;
+			draw_point(RECT_GPIO_MMC);
+			draw_text(TEXT_X, TEXT_Y + nextline, "SD Card Connected", subTitleColor, VAlignBottom);
+			nextline += LINE_SPACING;
 		}
 
 		if (phonesStatus) {
-			draw_point(260, 150, 10, 10);
-			draw_text(bgrect.x + 104, bgrect.y + nextline, "Phones Connected", subTitleColor, VAlignBottom);
-			nextline += 16;
+			draw_point(RECT_GPIO_PHONES);
+			draw_text(TEXT_X, TEXT_Y + nextline, "Phones Connected", subTitleColor, VAlignBottom);
+			nextline += LINE_SPACING;
 		}
 
 		// if (keys[BTN_SELECT] && keys[BTN_START]) loop = 0;
-		if (keys[BTN_START]) draw_point(70, 100, 10, 10);
-		if (keys[BTN_SELECT]) draw_point(70, 120, 10, 10);
-		if (keys[BTN_POWER]) draw_point(0, 85, 10, 20);
-		if (keys[BTN_BACKLIGHT]) draw_point(150, 0, 20, 10);
-		if (keys[BTN_L]) draw_point(5, 5, 35, 15);
-		if (keys[BTN_R]) draw_point(280, 5, 35, 15);
-		if (keys[BTN_LEFT]) draw_point(25, 55, 20, 20);
-		if (keys[BTN_RIGHT]) draw_point(65, 55, 20, 20);
-		if (keys[BTN_UP]) draw_point(45, 35, 20, 20);
-		if (keys[BTN_DOWN]) draw_point(45, 75, 20, 20);
-		if (keys[BTN_A]) draw_point(280, 60, 20, 20);
-		if (keys[BTN_B]) draw_point(260, 80, 20, 20);
-		if (keys[BTN_X]) draw_point(260, 40, 20, 20);
-		if (keys[BTN_Y]) draw_point(240, 60, 20, 20);
-
+		if (keys[BTN_START]) draw_point(RECT_BTN_START);
+		if (keys[BTN_SELECT]) draw_point(RECT_BTN_SELECT);
+		if (keys[BTN_POWER]) draw_point(RECT_BTN_POWER);
+		if (keys[BTN_BACKLIGHT]) draw_point(RECT_BTN_BACKLIGHT);
+		if (keys[BTN_L1]) draw_point(RECT_BTN_L1);
+		if (keys[BTN_R1]) draw_point(RECT_BTN_R1);
+		if (keys[BTN_LEFT]) draw_point(RECT_BTN_LEFT);
+		if (keys[BTN_RIGHT]) draw_point(RECT_BTN_RIGHT);
+		if (keys[BTN_UP]) draw_point(RECT_BTN_UP);
+		if (keys[BTN_DOWN]) draw_point(RECT_BTN_DOWN);
+		if (keys[BTN_EAST]) draw_point(RECT_BTN_EAST);
+		if (keys[BTN_SOUTH]) draw_point(RECT_BTN_SOUTH);
+		if (keys[BTN_NORTH]) draw_point(RECT_BTN_NORTH);
+		if (keys[BTN_WEST]) draw_point(RECT_BTN_WEST);
+		if (keys[BTN_L2]) draw_point(RECT_BTN_L2);
+		if (keys[BTN_R2]) draw_point(RECT_BTN_R2);
+		if (keys[BTN_RESET]) draw_point(RECT_BTN_RESET);
+		
 		SDL_Flip(screen);
 
 		while (SDL_WaitEvent(&event)) {
