@@ -1,6 +1,9 @@
 CHAINPREFIX :=/opt/miyoo
 CROSS_COMPILE := $(CHAINPREFIX)/usr/bin/arm-miyoo-linux-uclibcgnueabi-
 
+IMAGES = ./console_images
+OUTPUT = ./out
+
 CC = $(CROSS_COMPILE)gcc
 CXX = $(CROSS_COMPILE)g++
 STRIP = $(CROSS_COMPILE)strip
@@ -13,8 +16,10 @@ CFLAGS = -ggdb -DTARGET_BITTBOY -DTARGET=$(TARGET) -D__BUILDTIME__="$(BUILDTIME)
 CXXFLAGS = $(CFLAGS)
 LDFLAGS = $(SDL_LIBS) -lfreetype -lSDL -lSDL_image -lSDL_ttf
 
-bittboy:
-	$(CXX) $(CFLAGS) $(LDFLAGS) iotester.c -o iotester
+generic:
+	@if [ ! -d $(OUTPUT) ]; then mkdir $(OUTPUT); fi
+	$(CXX) $(CFLAGS) $(LDFLAGS) -include iotester-generic.h iotester.c -o $(OUTPUT)/iotester
+	@cp $(IMAGES)/generic.png $(OUTPUT)/backdrop.png
 
 pc:
 	gcc iotester.c -g -o iotester -ggdb -O0 -DDEBUG -lSDL_image -lSDL -lSDL_ttf -I/usr/include/SDL
@@ -30,4 +35,4 @@ ipk: retrogame
 	@ar r iotester.ipk /tmp/.iotester-ipk/control.tar.gz /tmp/.iotester-ipk/data.tar.gz /tmp/.iotester-ipk/debian-binary
 
 clean:
-	rm -rf iotester iotester.dge iotester.lnk
+	rm -rf iotester iotester.dge iotester.lnk $(OUTPUT)

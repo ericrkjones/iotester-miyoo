@@ -7,15 +7,12 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <signal.h>
-
 #include <sys/ioctl.h>
 #include <linux/vt.h>
 #include <linux/kd.h>
 #include <linux/fb.h>
-
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <linux/limits.h>
 
 static const int SDL_WAKEUPEVENT = SDL_USEREVENT+1;
@@ -29,11 +26,7 @@ static const int SDL_WAKEUPEVENT = SDL_USEREVENT+1;
 #else
 	#define DBG(x)
 #endif
-
-
-#define WIDTH  320
-#define HEIGHT 240
-
+#define IMAGE_PATH		"backdrop.png"
 #define GPIO_BASE		0x10010000
 #define PAPIN			((0x10010000 - GPIO_BASE) >> 2)
 #define PBPIN			((0x10010100 - GPIO_BASE) >> 2)
@@ -42,6 +35,14 @@ static const int SDL_WAKEUPEVENT = SDL_USEREVENT+1;
 #define PEPIN			((0x10010400 - GPIO_BASE) >> 2)
 #define PFPIN			((0x10010500 - GPIO_BASE) >> 2)
 
+#ifndef WIDTH
+#define WIDTH  320
+#endif
+#ifndef HEIGHT
+#define HEIGHT 240
+#endif
+
+#ifndef ALTERNATE_KEYMAP
 #define BTN_NORTH		SDLK_SPACE
 #define BTN_EAST		SDLK_LCTRL
 #define BTN_SOUTH		SDLK_LALT
@@ -63,43 +64,73 @@ static const int SDL_WAKEUPEVENT = SDL_USEREVENT+1;
 #define GPIO_MMC		SDLK_WORLD_1
 #define GPIO_USB		SDLK_WORLD_2
 #define GPIO_PHONES		SDLK_WORLD_3
-
-#define IMAGE_PATH		"backdrop.png"
-#define IMAGE_X			0
-#define IMAGE_Y			5
-#define TEXT_X			104
-#define TEXT_Y			145
-#define LINE_SPACING	10
-#define TITLE_STRING	"IO Tester - Generic"
-#define TITLE_X			160
-#define TITLE_Y			4
-#define EXIT_X			4
-#define EXIT_Y			230
-#define EXIT_STRING		"SEL+STR: Exit"
+#endif
 
 //Rectangle dimensions for highlighting components
 //      NAME                  X,   Y,   W,   H
-#define RECT_BTN_NORTH		245,  40,  25,  25
-#define RECT_BTN_EAST		270,  65,  25,  25
-#define RECT_BTN_SOUTH		245,  90,  25,  25
-#define RECT_BTN_WEST		220,  65,  25,  25
-#define RECT_BTN_L1			  5,   0,  45,  25
-#define RECT_BTN_L2			 60,   0,  30,  25
-#define RECT_BTN_R1			270,   0,  45,  25
-#define RECT_BTN_R2			230,   0,  30,  25
-#define RECT_BTN_START		195,  54,  20,  20
-#define RECT_BTN_SELECT		105,  54,  20,  20
+#ifndef RECT_BTN_NORTH
+#define RECT_BTN_NORTH		  0,   0,   0,   0
+#endif
+#ifndef RECT_BTN_EAST
+#define RECT_BTN_EAST		  0,   0,   0,   0
+#endif
+#ifndef RECT_BTN_SOUTH
+#define RECT_BTN_SOUTH		  0,   0,   0,   0
+#endif
+#ifndef RECT_BTN_WEST
+#define RECT_BTN_WEST		  0,   0,   0,   0
+#endif
+#ifndef RECT_BTN_L1
+#define RECT_BTN_L1			  0,   0,   0,   0
+#endif
+#ifndef RECT_BTN_L2
+#define RECT_BTN_L2			  0,   0,   0,   0
+#endif
+#ifndef RECT_BTN_R1
+#define RECT_BTN_R1			  0,   0,   0,   0
+#endif
+#ifndef RECT_BTN_R2
+#define RECT_BTN_R2			  0,   0,   0,   0
+#endif
+#ifndef RECT_BTN_START
+#define RECT_BTN_START		  0,   0,   0,   0
+#endif
+#ifndef RECT_BTN_SELECT
+#define RECT_BTN_SELECT		  0,   0,   0,   0
+#endif
+#ifndef RECT_BTN_BACKLIGHT
 #define RECT_BTN_BACKLIGHT	  0,   0,   0,   0
+#endif
+#ifndef RECT_BTN_POWER
 #define RECT_BTN_POWER		  0,   0,   0,   0
-#define RECT_BTN_UP			 45,  45,  25,  20
-#define RECT_BTN_DOWN		 45,  90,  25,  20
-#define RECT_BTN_LEFT		 25,  65,  20,  25
-#define RECT_BTN_RIGHT		 70,  65,  20,  25
-#define RECT_BTN_RESET		145,  49,  30,  25
+#endif
+#ifndef RECT_BTN_UP
+#define RECT_BTN_UP           0,   0,   0,   0
+#endif
+#ifndef RECT_BTN_DOWN
+#define RECT_BTN_DOWN         0,   0,   0,   0
+#endif
+#ifndef RECT_BTN_LEFT
+#define RECT_BTN_LEFT         0,   0,   0,   0
+#endif
+#ifndef RECT_BTN_RIGHT
+#define RECT_BTN_RIGHT        0,   0,   0,   0
+#endif
+#ifndef RECT_BTN_RESET
+#define RECT_BTN_RESET        0,   0,   0,   0
+#endif
+#ifndef RECT_GPIO_TV
 #define RECT_GPIO_TV		  0,   0,   0,   0
+#endif
+#ifndef RECT_GPIO_MMC
 #define RECT_GPIO_MMC		  0,   0,   0,   0
+#endif
+#ifndef RECT_GPIO_USB
 #define RECT_GPIO_USB		  0,   0,   0,   0
+#endif
+#ifndef RECT_GPIO_PHONES
 #define RECT_GPIO_PHONES	  0,   0,   0,   0
+#endif
 
 const int	HAlignLeft		= 1,
 			HAlignRight		= 2,
